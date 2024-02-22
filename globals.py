@@ -1,3 +1,5 @@
+import time
+
 import requests
 import base64
 
@@ -38,7 +40,7 @@ def twitch_get_new_token(client_secret):
                          .format(url, client_id, client_secret))
 
 
-def get_all_games(auth_token, min_id, max_id):
+def search_for_games(game_name, auth_token="mabnruzp2fehpsxtvvcq5issge2na1"):
     url = 'https://api.igdb.com/v4/games'
 
     headers = {
@@ -47,8 +49,55 @@ def get_all_games(auth_token, min_id, max_id):
     }
 
     params = {
-        'fields': f'*; where id <= {max_id} & id >= {min_id}; sort id asc;',
-        'limit': '500'
+        'fields': '*; search "{0}"; where category != 3;'.format(game_name),
+        'limit': '20'
     }
 
-    return requests.post(url, params=params, headers=headers)
+    game_ids = ""
+    games = requests.post(url, params=params, headers=headers)
+    for i in range(len(games.json())):
+        if i == 0:
+            game_ids += f"({games.json()[i]['id']}, "
+        elif i == len(games.json()) - 1:
+            game_ids += f"{games.json()[i]['id']})"
+        else:
+            game_ids += f"{games.json()[i]['id']}, "
+
+    url = 'https://api.igdb.com/v4/covers'
+
+    headers = {
+        'Client-ID': client_id,
+        'Authorization': f'Bearer {auth_token}'
+    }
+
+    params = {
+        'fields': 'url, game; where game = {0}'.format(game_ids),
+        'limit': '10'
+    }
+
+    covers = requests.post(url, params=params, headers=headers)
+
+    result = []
+    for i in range(len(games.json())):
+        result.append({})
+        result[i]['name'] = games.json()[i]['name']
+        if 'first_release_date' in games.json()[i].keys():
+            result[i]['first_release_date'] = games.json()[i]['first_release_date']
+        else:
+            result[i]['first_release_date'] = 0
+        if 'genres' in games.json()[i].keys():
+            result[i]['genres'] = games.json()[i]['genres']
+        else:
+            result[i]['genres'] = "Not available"
+        if 'platforms' in games.json()[i].keys():
+            result[i]['platforms'] = games.json()[i]['platforms']
+        else:
+            result[i]['platforms'] = "Not available"
+        if 'summary' in games.json()[i].keys():
+            result[i]['summary'] = games.json()[i]['summary']
+
+        for cover in covers.json():
+            if games.json()[i]['id'] == cover['game']:
+                result[i]['image_url'] = cover['url']
+
+    return result
