@@ -54,28 +54,54 @@ def search_for_games(game_name, auth_token="mabnruzp2fehpsxtvvcq5issge2na1"):
     }
 
     game_ids = ""
+    game_platforms = []
     games = requests.post(url, params=params, headers=headers)
+
     for i in range(len(games.json())):
-        if i == 0:
+        if 'platforms' in games.json()[i].keys():
+            for platform in games.json()[i]['platforms']:
+                game_platforms.append(platform)
+        if i == 0 and len(games.json()) != 1:
             game_ids += f"({games.json()[i]['id']}, "
+        elif i == 0 and len(games.json()) == 1:
+            game_ids = f"{games.json()[i]['id']}"
         elif i == len(games.json()) - 1:
             game_ids += f"{games.json()[i]['id']})"
         else:
             game_ids += f"{games.json()[i]['id']}, "
 
     url = 'https://api.igdb.com/v4/covers'
-
-    headers = {
-        'Client-ID': client_id,
-        'Authorization': f'Bearer {auth_token}'
-    }
-
     params = {
         'fields': 'url, game; where game = {0}'.format(game_ids),
         'limit': '10'
     }
-
     covers = requests.post(url, params=params, headers=headers)
+
+    url = 'https://api.igdb.com/v4/genres'
+
+    params = {
+        'fields': 'name',
+        'limit': '50'
+    }
+    genres = requests.post(url, params=params, headers=headers)
+    genres_dict = {}
+    for genre in genres.json():
+        genres_dict[genre['id']] = genre['name']
+
+    url = 'https://api.igdb.com/v4/platforms'
+    params = {
+        'fields': 'name, abbreviation; where id = {0}'.format(game_ids),
+        'limit': '50'
+    }
+    platforms = requests.post(url, params=params, headers=headers)
+    print(platforms.json())
+
+    platforms_dict = {}
+    for platform in platforms.json():
+        if 'abbreviation' in platform.keys():
+            platforms_dict[platform['id']] = platform['abbreviation']
+        else:
+            platforms_dict[platform['id']] = platform['name']
 
     result = []
     for i in range(len(games.json())):
@@ -86,18 +112,35 @@ def search_for_games(game_name, auth_token="mabnruzp2fehpsxtvvcq5issge2na1"):
         else:
             result[i]['first_release_date'] = 0
         if 'genres' in games.json()[i].keys():
-            result[i]['genres'] = games.json()[i]['genres']
+            result[i]['genres'] = ""
+            for genre in games.json()[i]['genres']:
+                if result[i]['genres'] == "":
+                    result[i]['genres'] += genres_dict.get(genre)
+                elif genres_dict.get(genre) == "None":
+                    continue
+                else:
+                    result[i]['genres'] += f", {genres_dict.get(genre)}"
         else:
             result[i]['genres'] = "Not available"
+        result[i]['platforms'] = "Not available"
         if 'platforms' in games.json()[i].keys():
-            result[i]['platforms'] = games.json()[i]['platforms']
-        else:
-            result[i]['platforms'] = "Not available"
+            for platform in games.json()[i]['platforms']:
+                if result[i]['platforms'] == "":
+                    result[i]['platforms'] += platforms_dict.get(platform)
+                elif platforms_dict.get(platform) == "None":
+                    continue
+                else:
+                    result[i]['platforms'] += f", {platforms_dict.get(platform)}"
         if 'summary' in games.json()[i].keys():
             result[i]['summary'] = games.json()[i]['summary']
-
-        for cover in covers.json():
-            if games.json()[i]['id'] == cover['game']:
-                result[i]['image_url'] = cover['url']
+        else:
+            result[i]['summary'] = "Not available"
+        result[i]['image_url'] = "Not available"
+        if games.json()[i]['id']:
+            for cover in covers.json():
+                if games.json()[i]['id'] == cover['game']:
+                    result[i]['image_url'] = cover['url']
 
     return result
+
+def sanitize_ids(id_string):

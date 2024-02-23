@@ -1,15 +1,21 @@
-from tkinter import Frame, Entry, Button, N, S, E, W, PhotoImage, Label, Text, END
+from tkinter import Frame, Entry, Button, N, S, E, W, PhotoImage, Label, Text, END, FLAT, DISABLED, WORD
 from contollers.add_game_controller import *
 from globals import *
 
 
 def add_game_window(parent_window, search_results=None, game_info=None, found_data=None, search_keyword=""):
+    release_date_str = ""
     if found_data is None:
         found_data = {}
     if search_results is None:
         search_results = []
     if game_info is None:
         game_info = {}
+    else:
+        if game_info["release_date"] == time.gmtime(0):
+            release_date_str = "N/A"
+        else:
+            release_date_str = time.strftime('%Y/%m/%d', game_info["release_date"])
 
     # Making the left and right frames resize correctly
     parent_window.rowconfigure(0, weight=1)
@@ -46,6 +52,7 @@ def add_game_window(parent_window, search_results=None, game_info=None, found_da
     search_result_frame = Frame(left_frame, width=200, height=600, bg=white)
     search_result_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=(0, 10), sticky=N+W+E+S)
 
+    # I am a sad banana
     search_result_frame.columnconfigure(0, weight=1)
     row_counter = 0
     for result in search_results:
@@ -67,13 +74,13 @@ def add_game_window(parent_window, search_results=None, game_info=None, found_da
     game_info_frame.grid_rowconfigure(6, weight=1)
     game_info_frame.grid_columnconfigure(0, weight=1)
     if game_info:
-        label_title_name = Label(game_info_frame, text="Name:", font="Helvetica 16 bold", bg=darker, fg=white)
-        label_title_name.grid(row=0, column=0, padx=20, pady=(20, 10), sticky=N+W)
+        label_title_name = Label(game_info_frame, text="Game:", font="Helvetica 16 bold", bg=darker, fg=white)
+        label_title_name.grid(row=0, column=0, padx=20, pady=(20, 0), sticky=N+W)
 
         label_name = Label(game_info_frame, text=game_info["name"], font="Helvetica 16", bg=darker, fg=white)
         label_name.grid(row=1, column=0, padx=20, pady=(0, 10), sticky=N + W)
 
-        label_release_year = Label(game_info_frame, text="Release: {0}".format(time.strftime('%Y-%m-%d', game_info["release_date"])), font="Helvetica 12 bold", bg=darker, fg=white)
+        label_release_year = Label(game_info_frame, text="Release: {0}".format(release_date_str), font="Helvetica 12 bold", bg=darker, fg=white)
         label_release_year.grid(row=2, column=0, padx=20, pady=(0, 10), sticky=N + W)
 
         label_genres = Label(game_info_frame, text="Genres: {0}".format(game_info["genres"]), font="Helvetica 12 bold", bg=darker, fg=white)
@@ -92,16 +99,18 @@ def add_game_window(parent_window, search_results=None, game_info=None, found_da
         #Label(image_frame, image=game_image)
 
         frame_details = Frame(game_info_frame, bg=dark, width=890)
-        frame_details.grid(row=6, column=0, columnspan=2, padx=10, pady=10, sticky=N + W + S + E)
+        frame_details.grid(row=6, column=0, columnspan=2, padx=10, pady=(0, 10), sticky=N + W + S + E)
 
         frame_details.grid_columnconfigure(0, weight=1)
+        frame_details.rowconfigure(1, weight=1)
 
         label_details = Label(frame_details, text="Summary:", font="Helvetica 14 bold", bg=dark, fg=white)
         label_details.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky=N + W)
 
-        text_details = Text(frame_details, font="Helvetica 12", bg=dark, fg=white)
+        text_details = Text(frame_details, font="Helvetica 12", height=12, bg=dark, fg=white, relief=FLAT, wrap=WORD)
         text_details.insert(END, game_info["summary"])
-        text_details.grid()
+        text_details.config(state=DISABLED)
+        text_details.grid(row=1, column=0, columnspan=2, padx=10, pady=(0, 10), sticky=N+E+S+W)
 
     # Button to return to the main_menu
     back_to_main_button = Button(right_frame, text="Back", command=lambda: return_to_main(parent_window),
