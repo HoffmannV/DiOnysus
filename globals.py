@@ -144,3 +144,4 @@ def search_for_games(game_name, auth_token="mabnruzp2fehpsxtvvcq5issge2na1"):
     return result
 
 def sanitize_ids(id_string):
+    pass
